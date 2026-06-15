@@ -1,6 +1,3 @@
-# Transport Jadvali Bot — 12 viloyat va tumanlari
-# requirements.txt: python-telegram-bot, flask
-
 import os
 import sys
 import threading
@@ -9,16 +6,14 @@ from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-print(">>> Skript boshlandi", flush=True)
+print(">>> Skript boshlandi...", flush=True)
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+# === BOT TOKENINI SOZLANMASI ===
+# Agar Render/Koyeb-da ishlatayotgan bo'lsangiz, Environment Variable (BOT_TOKEN) qilib kiriting.
+# Agar lokal kompyuterda sinab ko'rmoqchi bo'lsangiz, qo'shtirnoq ichiga tokenni yozing.
+BOT_TOKEN = os.environ.get("8927571109:AAHW3uRZHYv-A581y6W5ipuCHBvd2VX0sjY")
 
-if BOT_TOKEN:
-    print(f">>> BOT_TOKEN topildi, uzunligi: {len(BOT_TOKEN)}", flush=True)
-else:
-    print(">>> XATO: BOT_TOKEN environment variable topilmadi!", flush=True)
-
-# === 12 viloyat va ularning tumanlari (haqiqiy nomlar) ===
+# === 12 viloyat va ularning tumanlari ===
 REGIONS = {
     "andijon": {
         "name": "Andijon",
@@ -58,7 +53,7 @@ REGIONS = {
         "districts": [
             "Buxoro shahri", "Vobkent", "G'ijduvon", "Jondor", "Kogon",
             "Olot", "Peshku", "Qorako'l", "Qorovulbozor", "Romitan",
-            "Shofirkon", "Vobkent",
+            "Shofirkon",
         ],
     },
     "navoiy": {
@@ -116,13 +111,9 @@ REGIONS = {
     },
 }
 
-# user_id -> {"region": ..., "district": ...}
-user_state = {}
-
-
 def generate_bus_info(region_key, district):
-    """Avtobus raqami, vaqti va narxini generatsiya qilish (demo)."""
-    random.seed(region_key + district)  # har bir tuman uchun doimiy natija
+    """Avtobus ma'lumotlarini yaratish."""
+    random.seed(region_key + district)
     bus_number = f"{random.randint(1, 99):02d}"
     times = ["06:00", "08:30", "11:00", "14:30", "18:00", "20:30"]
     chosen_times = random.sample(times, k=3)
@@ -130,18 +121,14 @@ def generate_bus_info(region_key, district):
     price = random.randint(1800, 2200)
     return bus_number, chosen_times, price
 
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(">>> /start qabul qilindi", flush=True)
     await update.message.reply_text(
         "Salom! 👋 Men Transport Jadvali botiman.\n\n"
         "Viloyat va tumanlar bo'yicha avtobus jadvalini bilish uchun "
         "/marshrut buyrug'ini yuboring."
     )
 
-
 async def marshrut(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(">>> /marshrut qabul qilindi", flush=True)
     keyboard = []
     row = []
     for key, data in REGIONS.items():
@@ -153,61 +140,52 @@ async def marshrut(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append(row)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Viloyatni tanlang:", reply_markup=reply_markup)
-
+    await update.message.reply_text("📌 Viloyatni tanlang:", reply_markup=reply_markup)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    user_id = query.from_user.id
     data = query.data
 
     if data.startswith("region_"):
         region_key = data.replace("region_", "")
-        user_state[user_id] = {"region": region_key}
-
         districts = REGIONS[region_key]["districts"]
+        
         keyboard = []
         row = []
         for district in districts:
-            row.append(InlineKeyboardButton(district, callback_data=f"district_{region_key}_{district}"))
+            row.append(InlineKeyboardButton(district, callback_data=f"dist_{region_key}_{district}"))
             if len(row) == 2:
                 keyboard.append(row)
                 row = []
         if row:
             keyboard.append(row)
 
-        # Orqaga tugmasi
-        keyboard.append([InlineKeyboardButton("⬅️ Viloyatlar", callback_data="back_to_regions")])
-
+        keyboard.append([InlineKeyboardButton("⬅️ Viloyatlar ro'yxati", callback_data="back_to_regions")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        region_name = REGIONS[region_key]["name"]
+        
         await query.edit_message_text(
-            f"📍 {region_name} viloyati\n\nTumanni tanlang:",
+            f"📍 {REGIONS[region_key]['name']} viloyati\n\nTumanni tanlang:",
             reply_markup=reply_markup,
         )
 
-    elif data.startswith("district_"):
-        # format: district_{region_key}_{district_name}
-        rest = data.replace("district_", "")
+    elif data.startswith("dist_"):
+        rest = data.replace("dist_", "")
         region_key, district = rest.split("_", 1)
 
-        region_name = REGIONS[region_key]["name"]
         bus_number, times, price = generate_bus_info(region_key, district)
-
         times_text = "\n".join(f"🕐 {t}" for t in times)
 
         text = (
-            f"🚌 {region_name} — {district}\n\n"
-            f"Avtobus raqami: №{bus_number}\n\n"
-            f"Qatnov vaqtlari:\n{times_text}\n\n"
-            f"Narxi: {price} so'm\n\n"
-            f"Yangi qidiruv uchun /marshrut yuboring."
+            f"🚌 Yo'nalish: {REGIONS[region_key]['name']} — {district}\n\n"
+            f"🔢 Avtobus raqami: №{bus_number}\n\n"
+            f"📅 Qatnov vaqtlari:\n{times_text}\n\n"
+            f"💵 Yo'l haqki: {price} so'm\n\n"
+            f"Yangi qidiruv uchun /marshrut buyrug'ini bosing."
         )
 
-        keyboard = [[InlineKeyboardButton("⬅️ Tumanlar", callback_data=f"region_{region_key}")]]
+        keyboard = [[InlineKeyboardButton("⬅️ Orqaga (Tumanlar)", callback_data=f"region_{region_key}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-
         await query.edit_message_text(text, reply_markup=reply_markup)
 
     elif data == "back_to_regions":
@@ -222,41 +200,38 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append(row)
 
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("Viloyatni tanlang:", reply_markup=reply_markup)
+        await query.edit_message_text("📌 Viloyatni tanlang:", reply_markup=reply_markup)
 
-
-# === Render uchun web server ===
+# === Render / Koyeb uchun Web Server ===
 flask_app = Flask(__name__)
-
 
 @flask_app.route("/")
 def home():
-    return "Bot ishlayapti!"
-
+    return "Bot muvaffaqiyatli ishlayapti!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
-    print(f">>> Flask {port}-portda ishga tushyapti", flush=True)
-    flask_app.run(host="0.0.0.0", port=port)
-
+    print(f">>> Flask {port}-portda ishga tushmoqda...", flush=True)
+    flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 def main():
-    if not BOT_TOKEN:
-        print(">>> BOT_TOKEN yo'qligi sababli to'xtatildi", flush=True)
+    if BOT_TOKEN == "BU_YERGA_TELEGRAM_TOKEN_YOZING" or not BOT_TOKEN:
+        print(">>> XATO: Bot token kiritilmagan! Skript to'xtatildi.", flush=True)
         sys.exit(1)
 
+    # Flask serverni alohida Thread-da ochamiz (Render o'chib qolmasligi uchun)
     threading.Thread(target=run_flask, daemon=True).start()
 
-    print(">>> Telegram Application yaratilmoqda...", flush=True)
+    # Botni ishga tushirish
+    print(">>> Telegram Bot yuklanmoqda...", flush=True)
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("marshrut", marshrut))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    print(">>> Bot ishga tushdi, polling boshlandi...", flush=True)
+    print(">>> Bot muvaffaqiyatli ishga tushdi! (Polling...)", flush=True)
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
