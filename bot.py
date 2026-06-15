@@ -11,7 +11,7 @@ print(">>> Skript boshlandi...", flush=True)
 # === BOT TOKENINI SOZLANMASI ===
 # Agar Render/Koyeb-da ishlatayotgan bo'lsangiz, Environment Variable (BOT_TOKEN) qilib kiriting.
 # Agar lokal kompyuterda sinab ko'rmoqchi bo'lsangiz, qo'shtirnoq ichiga tokenni yozing.
-BOT_TOKEN = os.environ.get("8927571109:AAHW3uRZHYv-A581y6W5ipuCHBvd2VX0sjY")
+BOT_TOKEN = os.environ.get("8927571109:AAHZOlwAiEGVymrqay8cOxWj6kwzcUAoMWA")
 
 # === 12 viloyat va ularning tumanlari ===
 REGIONS = {
