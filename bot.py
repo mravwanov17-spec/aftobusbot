@@ -1,14 +1,22 @@
-# Transport Jadvali Bot — 12 viloyat, Render.com uchun
+# Transport Jadvali Bot — 12 viloyat
 # requirements.txt: python-telegram-bot, flask
 
 import os
+import sys
 import threading
 import random
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-BOT_TOKEN = "8927571109:AAHW3uRZHYv-A581y6W5ipuCHBvd2VX0sjY"
+print(">>> Skript boshlandi", flush=True)
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+if BOT_TOKEN:
+    print(f">>> BOT_TOKEN topildi, uzunligi: {len(BOT_TOKEN)}", flush=True)
+else:
+    print(">>> XATO: BOT_TOKEN environment variable topilmadi!", flush=True)
 
 # === 12 viloyat ===
 REGIONS = {
@@ -26,12 +34,10 @@ REGIONS = {
     "toshkent": "Toshkent",
 }
 
-# user_id -> tanlangan "qayerdan" viloyat
 user_state = {}
 
 
 def generate_schedule(origin, destination):
-    """Soat va narx generatsiya qilish (narx 1800-2200 so'm oralig'ida)."""
     times = ["06:00", "09:30", "13:00", "17:30", "21:00"]
     lines = []
     for t in times:
@@ -41,6 +47,7 @@ def generate_schedule(origin, destination):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(">>> /start qabul qilindi", flush=True)
     await update.message.reply_text(
         "Salom! 👋 Men Transport Jadvali botiman.\n\n"
         "Avtobus jadvali va narxlarini bilish uchun /marshrut buyrug'ini yuboring."
@@ -48,6 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def marshrut(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(">>> /marshrut qabul qilindi", flush=True)
     await show_regions(update, "Qayerdan jo'naysiz? Viloyatni tanlang:", prefix="from_")
 
 
@@ -116,7 +124,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_state.pop(user_id, None)
 
 
-# === Render uchun web server ===
+# === Render uchun web server (faqat "service is alive" ko'rsatish uchun) ===
 flask_app = Flask(__name__)
 
 
@@ -127,31 +135,27 @@ def home():
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
+    print(f">>> Flask {port}-portda ishga tushyapti", flush=True)
     flask_app.run(host="0.0.0.0", port=port)
 
 
-def run_bot():
-    import asyncio
-    asyncio.set_event_loop(asyncio.new_event_loop())
+def main():
+    if not BOT_TOKEN:
+        print(">>> BOT_TOKEN yo'qligi sababli to'xtatildi", flush=True)
+        sys.exit(1)
 
+    # Flask alohida thread'da, bot asosiy thread'da ishlaydi
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    print(">>> Telegram Application yaratilmoqda...", flush=True)
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("marshrut", marshrut))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    print("Bot ishga tushdi...")
+    print(">>> Bot ishga tushdi, polling boshlandi...", flush=True)
     app.run_polling()
-
-
-def main():
-    if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN environment variable topilmadi!")
-
-    # Botni alohida thread'da ishga tushiramiz, Flask asosiy oqimda qoladi
-    threading.Thread(target=run_bot, daemon=True).start()
-
-    run_flask()
 
 
 if __name__ == "__main__":
