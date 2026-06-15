@@ -130,11 +130,9 @@ def run_flask():
     flask_app.run(host="0.0.0.0", port=port)
 
 
-def main():
-    if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN environment variable topilmadi!")
-
-    threading.Thread(target=run_flask, daemon=True).start()
+def run_bot():
+    import asyncio
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
     app = Application.builder().token(BOT_TOKEN).build()
 
@@ -144,6 +142,16 @@ def main():
 
     print("Bot ishga tushdi...")
     app.run_polling()
+
+
+def main():
+    if not BOT_TOKEN:
+        raise ValueError("BOT_TOKEN environment variable topilmadi!")
+
+    # Botni alohida thread'da ishga tushiramiz, Flask asosiy oqimda qoladi
+    threading.Thread(target=run_bot, daemon=True).start()
+
+    run_flask()
 
 
 if __name__ == "__main__":
