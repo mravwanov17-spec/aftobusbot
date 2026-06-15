@@ -8,7 +8,7 @@ from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = "8944341939:AAFJP-ktVebERXp_v4nOTnyrnB3Mh-r2xXk"
 
 # === 12 viloyat ===
 REGIONS = {
